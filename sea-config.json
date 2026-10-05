@@ -1,0 +1,4 @@
+{
+  "main": "bundle.cjs",
+  "output": "libretranslate-helper"
+}
