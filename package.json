@@ -1,0 +1,16 @@
+{
+  "name": "translate",
+  "version": "1.0.0",
+  "description": "helper for translation of files with libretranslate",
+  "license": "ISC",
+  "author": "yyyyyiiiiii",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "commander": "^15.0.0",
+    "undici": "^8.11.2"
+  }
+}
