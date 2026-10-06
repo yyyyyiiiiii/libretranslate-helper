@@ -18,7 +18,10 @@ const options = program.opts();
 const input = options.input;
 const input_lang = options?.input_lang || "de";
 const output_lang = options?.output_lang || "en";
-const output = options?.output || input.replace(/(\.[^.]+)$/, `.${output_lang}$1`);
+const output = options?.output || (
+  input.replace(/(\.[^.]+)$/, `.${output_lang}$1`) +
+    (/\.[^.]+$/.test(input) ? "" : ".en")
+);
 
 async function main() {
   const dispatcher = new Agent({
