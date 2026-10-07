@@ -1,4 +1,5 @@
 {
   "main": "bundle.cjs",
-  "output": "libretranslate-helper"
+  "output": "libretranslate-helper",
+  "disableExperimentalSEAWarning": true
 }
