@@ -1,8 +1,50 @@
 import fs from "node:fs";
 import { Agent } from "undici";
 import { program } from "commander";
+import envPaths from "env-paths";
 
-const HOST = "http://127.0.0.1:5000/";
+const DEFAULT_CONFIG = {
+    host: "http://127.0.0.1:5000",
+    input_lang: "de",
+    output_lang: "en",
+    api_key: ""
+  };
+
+const paths = envPaths("libretranslate-helper");
+const config_path = `${paths.config}/config.json`;
+
+if (!fs.existsSync(config_path)) {
+  try {
+    fs.mkdirSync(paths.config, { recursive: true });
+    fs.writeFileSync(config_path, JSON.stringify(DEFAULT_CONFIG));
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+const config = (() => {
+  let parsed = true;
+  let res = {};
+  try {
+    res = JSON.parse(fs.readFileSync(config_path, "utf8"));
+  } catch (err) {
+    console.error(err);
+    parsed = false;
+  }
+
+  if (!parsed)
+    return DEFAULT_CONFIG;
+
+  if (!res.host)
+    res.host = DEFAULT_CONFIG.host;
+
+  if (!res.input_lang)
+    res.input_lang = DEFAULT_CONFIG.input_lang;
+
+  if (!res.output_lang)
+    res.output_lang = DEFAULT_CONFIG.output_lang;
+  return res;
+})();
 
 const dispatcher = new Agent({
   headersTimeout: 0,
@@ -10,7 +52,7 @@ const dispatcher = new Agent({
 });
 
 async function languages() {
-  const res = await fetch(`${HOST}/languages`, {
+  const res = await fetch(`${config.host}/languages`, {
     dispatcher,
     method: "GET",
   });
@@ -22,7 +64,7 @@ async function languages() {
 async function translate(input, input_lang, output_lang, output) {
   const data = fs.readFileSync(input, "utf8");
 
-  const res = await fetch(`${HOST}/translate`, {
+  const res = await fetch(`${config.host}/translate`, {
     dispatcher,
 	  method: "POST",
 	  body: JSON.stringify({
@@ -31,7 +73,7 @@ async function translate(input, input_lang, output_lang, output) {
 		  target: output_lang,
 		  format: "text",
 		  alternatives: 3,
-		  api_key: ""
+		  api_key: config.api_key
 	  }),
 	  headers: { "Content-Type": "application/json" }
   });
@@ -44,12 +86,12 @@ async function translate(input, input_lang, output_lang, output) {
 async function detect(input) {
   const data = fs.readFileSync(input, "utf8");
 
-  const res = await fetch(`${HOST}/detect`, {
+  const res = await fetch(`${config.host}/detect`, {
     dispatcher,
 	  method: "POST",
 	  body: JSON.stringify({
 		  q: data,
-		  api_key: ""
+		  api_key: config.api_key
 	  }),
 	  headers: { "Content-Type": "application/json" }
   });
@@ -67,8 +109,8 @@ program
   .command("translate")
   .description('Takes a file and translates it')
   .requiredOption("-i, --input <path>", "input file path")
-  .option("--input-lang <lang>", "input language", "de")
-  .option("--output-lang <lang>", "output language", "en")
+  .option("--input-lang <lang>", "input language", config.input_lang)
+  .option("--output-lang <lang>", "output language", config.output_lang)
   .option("-o, --output <path>", "output file path")
   .action((options) => {
     const input = options.input;
