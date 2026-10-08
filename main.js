@@ -61,14 +61,12 @@ async function languages() {
   console.log(result);
 }
 
-async function translate(input, output) {
-  const data = fs.readFileSync(input, "utf8");
-
+async function translate(input) {
   const res = await fetch(`${config.host}/translate`, {
     dispatcher,
 	  method: "POST",
 	  body: JSON.stringify({
-		  q: data,
+		  q: input,
 		  source: config.input_lang,
 		  target: config.output_lang,
 		  format: "text",
@@ -79,8 +77,13 @@ async function translate(input, output) {
   });
 
   const result = await res.json();
+  return result.translatedText;
+}
 
-  fs.writeFileSync(output, result.translatedText, { encoding: "utf8" });
+async function translate_file(input, output) {
+  const data = fs.readFileSync(input, "utf8");
+  const translation = await translate(data);
+  fs.writeFileSync(output, translation, { encoding: "utf8" });
 }
 
 async function detect(input) {
@@ -107,8 +110,36 @@ program
   .option("-a, --api_key <api_key>", "api key", config.api_key)
   .version("1.0.0");
 
-program
+const command_translate = program
   .command("translate")
+  .description('Takes an input and translates it');
+
+command_translate
+  .command("text")
+  .description('Takes a text and translates it')
+  .requiredOption("-i, --input <path>", "input")
+  .option("--input-lang <lang>", "input language", config.input_lang)
+  .option("--output-lang <lang>", "output language", config.output_lang)
+  .action((options) => {
+    config.host = program.opts().host;
+    config.api_key = program.opts().api_key;
+    config.input_lang = options?.inputLang;
+    config.output_lang = options?.outputLang;
+
+    const input = options.input;
+
+    translate(input)
+      .then((result) => {
+        console.log(result);
+      })
+      .catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
+  });
+
+command_translate
+  .command("file")
   .description('Takes a file and translates it')
   .requiredOption("-i, --input <path>", "input file path")
   .option("--input-lang <lang>", "input language", config.input_lang)
@@ -126,7 +157,7 @@ program
         (/\.[^.]+$/.test(input) ? "" : `.${config.output_lang}`)
     );
 
-    translate(input, output).catch((err) => {
+    translate_file(input, output).catch((err) => {
       console.error(err);
       process.exit(1);
     });
