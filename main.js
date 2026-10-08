@@ -48,7 +48,7 @@ const config = (() => {
 
 const dispatcher = new Agent({
   headersTimeout: 0,
-  bodyTimeout: 0,
+  bodyTimeout: 0
 });
 
 async function languages() {
@@ -61,7 +61,7 @@ async function languages() {
   console.log(result);
 }
 
-async function translate(input, input_lang, output_lang, output) {
+async function translate(input, output) {
   const data = fs.readFileSync(input, "utf8");
 
   const res = await fetch(`${config.host}/translate`, {
@@ -69,8 +69,8 @@ async function translate(input, input_lang, output_lang, output) {
 	  method: "POST",
 	  body: JSON.stringify({
 		  q: data,
-		  source: input_lang,
-		  target: output_lang,
+		  source: config.input_lang,
+		  target: config.output_lang,
 		  format: "text",
 		  alternatives: 3,
 		  api_key: config.api_key
@@ -103,6 +103,8 @@ async function detect(input) {
 program
   .name("libretranslate-helper")
   .description("CLI helper for LibreTranslate")
+  .option("-h, --host <host>", "proto://host:port", config.host)
+  .option("-a, --api_key <api_key>", "api key", config.api_key)
   .version("1.0.0");
 
 program
@@ -113,15 +115,18 @@ program
   .option("--output-lang <lang>", "output language", config.output_lang)
   .option("-o, --output <path>", "output file path")
   .action((options) => {
+    config.host = program.opts().host;
+    config.api_key = program.opts().api_key;
+    config.input_lang = options?.inputLang;
+    config.output_lang = options?.outputLang;
+
     const input = options.input;
-    const input_lang = options?.inputLang;
-    const output_lang = options?.outputLang;
     const output = options?.output || (
-      input.replace(/(\.[^.]+)$/, `.${output_lang}$1`) +
-        (/\.[^.]+$/.test(input) ? "" : `.${output_lang}`)
+      input.replace(/(\.[^.]+)$/, `.${config.output_lang}$1`) +
+        (/\.[^.]+$/.test(input) ? "" : `.${config.output_lang}`)
     );
 
-    translate(input, input_lang, output_lang, output).catch((err) => {
+    translate(input, output).catch((err) => {
       console.error(err);
       process.exit(1);
     });
@@ -131,6 +136,9 @@ program
   .command("languages")
   .description('List all available languages')
   .action(() => languages().catch((err) => {
+    config.host = program.opts().host;
+    config.api_key = program.opts().api_key;
+
     console.error(err);
     process.exit(1);
   }));
@@ -140,6 +148,9 @@ program
   .description('Detect the language of a text')
   .requiredOption("-i, --input <path>", "input file path")
   .action((options) => {
+    config.host = program.opts().host;
+    config.api_key = program.opts().api_key;
+
     const input = options.input;
 
     detect(input).catch((err) => {
