@@ -8,5 +8,26 @@ node --build-sea sea-config.json
 # INSTALL
 
 ```sh
-install -Dm755 libretranslate-helper /usr/local/bin/libretranslate-helper
+install -Dm755 libretranslate-helper ~/.local/bin/libretranslate-helper
+```
+
+# USAGE
+
+```
+Usage: libretranslate-helper [options] [command]
+
+CLI helper for LibreTranslate
+
+Options:
+  -u, --allow-unauthorized  Allow unauthorized SSL connections (default: false)
+  -h, --host <host>         proto://host:port (default: "http://127.0.0.1:5000")
+  -a, --api_key <api_key>   api key (default: "")
+  -V, --version             output the version number
+  --help                    display help for command
+
+Commands:
+  translate                 Takes an input and translates it
+  languages                 List all available languages
+  detect [options]          Detect the language of a text
+  help [command]            display help for command
 ```
