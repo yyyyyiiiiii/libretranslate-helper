@@ -46,10 +46,7 @@ const config = (() => {
   return res;
 })();
 
-const dispatcher = new Agent({
-  headersTimeout: 0,
-  bodyTimeout: 0
-});
+let dispatcher = {};
 
 async function languages() {
   const res = await fetch(`${config.host}/languages`, {
@@ -87,13 +84,11 @@ async function translate_file(input, output) {
 }
 
 async function detect(input) {
-  const data = fs.readFileSync(input, "utf8");
-
   const res = await fetch(`${config.host}/detect`, {
     dispatcher,
 	  method: "POST",
 	  body: JSON.stringify({
-		  q: data,
+		  q: input,
 		  api_key: config.api_key
 	  }),
 	  headers: { "Content-Type": "application/json" }
@@ -103,9 +98,20 @@ async function detect(input) {
   console.log(result);
 }
 
+const preset = () => {
+  config.host = program.opts().host;
+  config.api_key = program.opts().api_key;
+  dispatcher = new Agent({
+    headersTimeout: 0,
+    bodyTimeout: 0,
+    connect: { rejectUnauthorized: !program.opts().allowUnauthorized },
+  });
+}
+
 program
   .name("libretranslate-helper")
   .description("CLI helper for LibreTranslate")
+  .option("-u, --allow-unauthorized", "Allow unauthorized SSL connections", false)
   .option("-h, --host <host>", "proto://host:port", config.host)
   .option("-a, --api_key <api_key>", "api key", config.api_key)
   .version("1.0.0");
@@ -121,8 +127,7 @@ command_translate
   .option("--input-lang <lang>", "input language", config.input_lang)
   .option("--output-lang <lang>", "output language", config.output_lang)
   .action((options) => {
-    config.host = program.opts().host;
-    config.api_key = program.opts().api_key;
+    preset();
     config.input_lang = options?.inputLang;
     config.output_lang = options?.outputLang;
 
@@ -146,8 +151,7 @@ command_translate
   .option("--output-lang <lang>", "output language", config.output_lang)
   .option("-o, --output <path>", "output file path")
   .action((options) => {
-    config.host = program.opts().host;
-    config.api_key = program.opts().api_key;
+    preset();
     config.input_lang = options?.inputLang;
     config.output_lang = options?.outputLang;
 
@@ -166,25 +170,49 @@ command_translate
 program
   .command("languages")
   .description('List all available languages')
-  .action(() => languages().catch((err) => {
-    config.host = program.opts().host;
-    config.api_key = program.opts().api_key;
-
-    console.error(err);
-    process.exit(1);
-  }));
+  .action(() => {
+    preset();
+    languages().catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+  });
 
 program
   .command("detect")
   .description('Detect the language of a text')
-  .requiredOption("-i, --input <path>", "input file path")
+  .option("-t, --text <text>", "input text")
+  .option("-f, --file <file>", "input file")
   .action((options) => {
-    config.host = program.opts().host;
-    config.api_key = program.opts().api_key;
+    preset();
 
-    const input = options.input;
+    const text = options?.text;
+    const file = options?.file;
 
-    detect(input).catch((err) => {
+    if (!text && !file) {
+      console.error("Please provide either --text or --file option");
+      process.exit(1);
+    }
+
+    if (!!text) {
+      detect(text).catch((err) => {
+        console.error(err);
+        process.exit(1);
+      });
+    }
+
+    if (!file)
+      return;
+
+    let data = "";
+    try {
+      data = fs.readFileSync(file, "utf8");
+    } catch (err) {
+      console.error(err);
+      process.exit(1);
+    }
+
+    detect(data).catch((err) => {
       console.error(err);
       process.exit(1);
     });
