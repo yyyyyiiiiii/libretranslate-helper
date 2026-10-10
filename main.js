@@ -2,6 +2,7 @@ import fs from "node:fs";
 import { Agent } from "undici";
 import { program } from "commander";
 import envPaths from "env-paths";
+import { fileTypeFromFile } from "file-type";
 
 const DEFAULT_CONFIG = {
     host: "http://127.0.0.1:5000",
@@ -78,9 +79,38 @@ async function translate(input) {
 }
 
 async function translate_file(input, output) {
-  const data = fs.readFileSync(input, "utf8");
-  const translation = await translate(data);
-  fs.writeFileSync(output, translation, { encoding: "utf8" });
+  const type = await fileTypeFromFile(input);
+  const data = fs.readFileSync(input);
+  const file = new Blob([data], { type: type?.mime || "text/plain" });
+  const form = new FormData();
+  form.append("file", file, input);
+  form.append("source", config.input_lang);
+  form.append("target", config.output_lang);
+  form.append("api_key", config.api_key);
+
+  let res = await fetch(`${config.host}/translate_file`, {
+    dispatcher,
+	  method: "POST",
+	  body: form
+  });
+
+  const result = await res.json();
+
+  if (result?.error) {
+    throw new Error(result.error);
+  }
+
+  const translatedFileUrl = (config.host +
+    result.translatedFileUrl.slice(result.translatedFileUrl.indexOf("/download_file")));
+
+  res = await fetch(`${translatedFileUrl}`, { dispatcher });
+
+  if (!res.ok) {
+    throw new Error(`Failed to download translated file: ${res.status} ${res.statusText}`);
+  }
+
+  const bytes = Buffer.from(await res.arrayBuffer());
+  fs.writeFileSync(output, bytes);
 }
 
 async function detect(input) {
@@ -190,7 +220,7 @@ program
     const file = options?.file;
 
     if (!text && !file) {
-      console.error("Please provide either --text or --file option");
+      console.error("Provide either --text or --file option");
       process.exit(1);
     }
 
