@@ -2,7 +2,7 @@ import fs from "node:fs";
 import { Agent } from "undici";
 import { program } from "commander";
 import envPaths from "env-paths";
-import { fileTypeFromFile } from "file-type";
+import { fileTypeFromBuffer } from "file-type";
 
 const DEFAULT_CONFIG = {
     host: "http://127.0.0.1:5000",
@@ -79,8 +79,8 @@ async function translate(input) {
 }
 
 async function translate_file(input, output) {
-  const type = await fileTypeFromFile(input);
   const data = fs.readFileSync(input);
+  const type = await fileTypeFromBuffer(data);
   const file = new Blob([data], { type: type?.mime || "text/plain" });
   const form = new FormData();
   form.append("file", file, input);
