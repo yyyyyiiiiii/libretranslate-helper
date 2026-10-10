@@ -173,22 +173,16 @@ program
   .option("-a, --api_key <api_key>", "api key", config.api_key)
   .version("1.0.0");
 
-const command_translate = program
+program
   .command("translate")
-  .description('Takes an input and translates it');
-
-command_translate
-  .command("text")
   .description('Takes a text and translates it')
-  .requiredOption("-i, --input <text>", "input")
+  .argument('<input>', 'input text')
   .option("--input-lang <lang>", "input language", config.input_lang)
   .option("--output-lang <lang>", "output language", config.output_lang)
-  .action((options) => {
+  .action((input, options) => {
     preset();
     config.input_lang = options?.inputLang;
     config.output_lang = options?.outputLang;
-
-    const input = options.input;
 
     translate(input)
       .then((result) => {
@@ -200,19 +194,18 @@ command_translate
       });
   });
 
-command_translate
-  .command("file")
+program
+  .command("translate-file")
   .description('Takes a file and translates it')
-  .requiredOption("-i, --input <path>", "input file path")
+  .argument('<input>', 'input file path')
   .option("--input-lang <lang>", "input language", config.input_lang)
   .option("--output-lang <lang>", "output language", config.output_lang)
   .option("-o, --output <path>", "output file path")
-  .action((options) => {
+  .action((input, options) => {
     preset();
     config.input_lang = options?.inputLang;
     config.output_lang = options?.outputLang;
 
-    const input = options.input;
     const output = options?.output || (
       input.replace(/(\.[^.]+)$/, `.${config.output_lang}$1`) +
         (/\.[^.]+$/.test(input) ? "" : `.${config.output_lang}`)
