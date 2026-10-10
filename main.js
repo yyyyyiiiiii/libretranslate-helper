@@ -53,6 +53,11 @@ async function languages() {
   const res = await fetch(`${config.host}/languages`, {
     dispatcher,
     method: "GET",
+    // bun
+    timeout: false,
+    tls: {
+      rejectUnauthorized: !program.opts().allowUnauthorized
+    }
   });
 
   const result = await res.json();
@@ -71,7 +76,12 @@ async function translate(input) {
 		  alternatives: 3,
 		  api_key: config.api_key
 	  }),
-	  headers: { "Content-Type": "application/json" }
+	  headers: { "Content-Type": "application/json" },
+    // bun
+    timeout: false,
+    tls: {
+      rejectUnauthorized: !program.opts().allowUnauthorized
+    }
   });
 
   const result = await res.json();
@@ -91,7 +101,12 @@ async function translate_file(input, output) {
   let res = await fetch(`${config.host}/translate_file`, {
     dispatcher,
 	  method: "POST",
-	  body: form
+	  body: form,
+    // bun
+    timeout: false,
+    tls: {
+      rejectUnauthorized: !program.opts().allowUnauthorized
+    }
   });
 
   const result = await res.json();
@@ -103,7 +118,14 @@ async function translate_file(input, output) {
   const translatedFileUrl = (config.host +
     result.translatedFileUrl.slice(result.translatedFileUrl.indexOf("/download_file")));
 
-  res = await fetch(`${translatedFileUrl}`, { dispatcher });
+  res = await fetch(`${translatedFileUrl}`, {
+    dispatcher,
+    // bun
+    timeout: false,
+    tls: {
+      rejectUnauthorized: !program.opts().allowUnauthorized
+    }
+  });
 
   if (!res.ok) {
     throw new Error(`Failed to download translated file: ${res.status} ${res.statusText}`);
@@ -121,7 +143,12 @@ async function detect(input) {
 		  q: input,
 		  api_key: config.api_key
 	  }),
-	  headers: { "Content-Type": "application/json" }
+	  headers: { "Content-Type": "application/json" },
+    // bun
+    timeout: false,
+    tls: {
+      rejectUnauthorized: !program.opts().allowUnauthorized
+    }
   });
 
   const result = await res.json();
@@ -153,7 +180,7 @@ const command_translate = program
 command_translate
   .command("text")
   .description('Takes a text and translates it')
-  .requiredOption("-i, --input <path>", "input")
+  .requiredOption("-i, --input <text>", "input")
   .option("--input-lang <lang>", "input language", config.input_lang)
   .option("--output-lang <lang>", "output language", config.output_lang)
   .action((options) => {

@@ -5,6 +5,12 @@ npx esbuild main.js --bundle --platform=node --format=cjs --outfile=bundle.cjs
 node --build-sea sea-config.json
 ```
 
+*OR*
+
+```sh
+bun build main.js --compile --outfile libretranslate-helper
+```
+
 # INSTALL
 
 ```sh
